@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: traductor-barmel
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: streamlit run traductor.py --server.port $PORT
+    autoDeploy: true
