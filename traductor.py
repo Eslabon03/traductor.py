@@ -1,7 +1,8 @@
 import streamlit as st
 import pdfplumber
 from deep_translator import GoogleTranslator
-from gtts import gTTS
+import edge_tts
+import asyncio
 import io
 
 # Control removido: la app es pública/personal por ahora
@@ -41,18 +42,25 @@ with col2:
         st.text_area("Texto en Español:", value=st.session_state.translated_text, height=250)
         
         voces = {
-            "Español (México)": "com.mx",
-            "Español (España)": "es",
-            "Español (Estados Unidos)": "us"
+            "Español Femenino (México) - Dalia": "es-MX-DaliaNeural",
+            "Español Femenino (España) - Elvira": "es-ES-ElviraNeural",
+            "Español Femenino (Estados Unidos) - Paloma": "es-US-PalomaNeural"
         }
         voz_seleccionada = st.selectbox("Selecciona la voz de lectura:", options=list(voces.keys()))
         tld_seleccionado = voces[voz_seleccionada]
 
         if st.button("🔊 Escuchar (Generar Audio)"):
-            with st.spinner("Generando audio..."):
-                tts = gTTS(text=st.session_state.translated_text, lang='es', tld=tld_seleccionado)
-                buf = io.BytesIO()
-                tts.write_to_fp(buf)
+            with st.spinner("Generando audio de alta calidad..."):
+                async def get_audio_bytes(text, voice):
+                    communicate = edge_tts.Communicate(text, voice)
+                    audio_data = b""
+                    async for chunk in communicate.stream():
+                        if chunk["type"] == "audio":
+                            audio_data += chunk["data"]
+                    return audio_data
+                
+                audio_bytes = asyncio.run(get_audio_bytes(st.session_state.translated_text, tld_seleccionado))
+                buf = io.BytesIO(audio_bytes)
                 
                 import base64
                 import streamlit.components.v1 as components
